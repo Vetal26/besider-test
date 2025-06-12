@@ -1,0 +1,58 @@
+.footer {
+    position: relative;
+    display: flex;
+    bottom: 0;
+    flex-direction: column;
+    gap: 24.5px;
+    padding: 40px 0 20px;
+    text-align: center;
+
+    .navigation {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        gap: 20px;
+
+        .navLink {
+            font-size: 12px;
+            line-height: 18.2px;
+            text-decoration: none;
+            color: #000;
+            
+            &:visited,
+            &:active {
+                color: #000;
+            }
+        }
+    }
+
+    .poweredBy {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8.29px;
+
+        .text {
+            font-size: 12px;
+            line-height: 14.24px;
+            text-align: center;
+        }
+
+        .link {
+            display: inline-block;
+            text-decoration: none;
+            background: url(src/assets/images/api.png);
+            width: 84px;
+            height: 24.48px;
+        }
+    }
+
+
+    .copyright {
+        font-size: 12px;
+        line-height: 14px;
+        text-align: center;
+    }
+}
+
+
