@@ -1,16 +1,11 @@
-import './App.css'
-import { useGetNewsQuery } from './app/services/news/newsApi'
+import VirtualizedNewsListGroups from './components/VirtualizedNewsListGroups'
 import MainLayout from './layouts/MainLayout'
+import './App.css'
 
 function App() {
-  const { data } = useGetNewsQuery({
-    year: 2025,
-    month: 4,
-  })
-
   return (
     <MainLayout>
-      <h1>besider-test</h1>
+      <VirtualizedNewsListGroups />
     </MainLayout>
   )
 }
