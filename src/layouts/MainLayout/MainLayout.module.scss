@@ -8,3 +8,9 @@
         flex: 1;
     }
 }
+
+@supports (height: 100dvh) {
+  .layout {
+    min-height: 100dvh;
+  }
+}
