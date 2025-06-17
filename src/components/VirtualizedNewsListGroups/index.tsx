@@ -7,21 +7,32 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import ArticleItem from '../ArticleItem'
 import type { Article } from '../../app/services/news/types'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { addArticles, setArticles } from '../../app/newsSlice'
+import { addNewArticles, addOldArticles } from '../../app/newsSlice'
+import type { MonthYear } from '../../utils/types'
+import { initDateState } from '../../utils/state'
 
 const VirtualizedNewsListGroups = () => {
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+  const [currentDate, setCurrentDate] = useState<MonthYear>(initDateState)
+  const [archiveDate, setArchiveDate] = useState<MonthYear>(initDateState)
   const dispatch = useAppDispatch()
   const articles = useAppSelector((state) => state.news.articles)
 
   const {
     data: newArticles,
+    error,
+    isLoading,
+  } = useGetNewsQuery(currentDate, {
+    pollingInterval: 30000,
+  })
+
+  const {
+    data: oldArticles,
     isFetching,
     isError,
-  } = useGetNewsQuery({
-    year: currentYear,
-    month: currentMonth,
+  } = useGetNewsQuery(archiveDate, {
+    skip:
+      currentDate.month === archiveDate.month &&
+      currentDate.year === archiveDate.year,
   })
 
   const { groups, groupCounts } = useMemo(() => {
@@ -29,7 +40,7 @@ const VirtualizedNewsListGroups = () => {
       (map, article) => {
         const date = format(new Date(article.pub_date), 'dd.MM.yyyy')
         if (map[date]) {
-          if (map[date].length > 5) map[date].push(article)
+          map[date].push(article)
         } else {
           map[date] = [article]
         }
@@ -50,36 +61,54 @@ const VirtualizedNewsListGroups = () => {
     return { groups, groupCounts }
   }, [articles])
 
-  // When new data arrives from API, update the store
   useEffect(() => {
     if (newArticles) {
-      if (
-        currentYear === new Date().getFullYear() &&
-        currentMonth === new Date().getMonth() + 1
-      ) {
-        // For current month, add to existing articles
-        dispatch(addArticles(newArticles))
-      } else {
-        // For older months, replace the articles
-        dispatch(setArticles(newArticles))
-      }
+      dispatch(addNewArticles(newArticles))
     }
-  }, [newArticles, dispatch, currentYear, currentMonth])
+  }, [dispatch, newArticles])
+
+  useEffect(() => {
+    if (oldArticles) {
+      dispatch(addOldArticles(oldArticles))
+    }
+  }, [oldArticles, dispatch])
+
+  const getPrevMounthAndYear = (date: MonthYear): MonthYear => {
+    let prevMonth = date.month - 1
+    let prevYear = date.year
+    if (prevMonth < 1) {
+      prevMonth = 12
+      prevYear--
+    }
+
+    return { month: prevMonth, year: prevYear }
+  }
 
   const onLoadOlder = useCallback(() => {
-    let newMonth = currentMonth - 1
-    let newYear = currentYear
-    if (newMonth < 1) {
-      newMonth = 12
-      newYear--
-    }
-    setCurrentMonth(newMonth)
-    setCurrentYear(newYear)
-  }, [currentMonth, currentYear])
+    const prevDate = getPrevMounthAndYear(archiveDate)
 
-  if (isError) {
-    return <h2 className={styles.error}>Failed to get news list</h2>
+    setArchiveDate(prevDate)
+  }, [archiveDate])
+
+  useEffect(() => {
+    if (
+      (error && 'originalStatus' in error && error.originalStatus === 403) ||
+      (error && 'status' in error && error.status === 403)
+    ) {
+      setCurrentDate((prev) => getPrevMounthAndYear(prev))
+      setArchiveDate((prev) => getPrevMounthAndYear(prev))
+    }
+  }, [error])
+
+  if (isError || error) {
+    return (
+      <h2 className={styles.error}>
+        Failed to get news list. Please wait a bit, news will appear soon
+      </h2>
+    )
   }
+
+  if (isLoading) return <Loader />
 
   return (
     <>
@@ -93,11 +122,15 @@ const VirtualizedNewsListGroups = () => {
         groupContent={(index) => {
           return <h2 className={styles.title}>News for {groups[index]}</h2>
         }}
-        itemContent={(index, groupIndex, article) => {
+        itemContent={(index, groupIndex) => {
+          const lastIndex =
+            groupCounts
+              .slice(0, groupIndex + 1)
+              .reduce((sum, count) => sum + count, 0) - 1
           return (
             <ArticleItem
-              article={article}
-              isLastOfGroup={index === groupCounts[groupIndex] - 1}
+              article={articles[index]}
+              isLastOfGroup={index === lastIndex}
             />
           )
         }}
