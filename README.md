@@ -7,7 +7,7 @@ git clone git@github.com:Vetal26/besider-test.git
 
 cd besider-test
 
-npm install ci
+npm ci
 
 npm run dev
 ```
